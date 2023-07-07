@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: webapp-color-deployment
+  name: webapp-color-deployment
+spec:
+  replicas: 12
+  selector:
+    matchLabels:
+      app: webapp-color-deployment
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: webapp-color-deployment
+    spec:
+      containers:
+      - image: kodekloud/simple-webapp:blue
+        name: webapp-color
+        resources: {}
+        ports: 
+          - containerPort: 8080
+status: {}

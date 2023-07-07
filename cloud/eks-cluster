@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# 
+# Script: eks-cluster
+# Purpose: script to create and destroy an EKS cluster in AWS for development and testing purposes
+#
+
+# User configurable variables
+NUM_NODES=2
+MAX_NODES=2
+MIN_NODES=2
+NODE_TYPE=t3.micro
+NODE_VOLUME_SIZE=10
+#
+
+KUBECTL=$(which kubectl) || { echo "Command kubectl not found.  Please verify."; exit 1; }
+EKSCTL=$(which eksctl) || { echo "Command eksctl not found.  Please verify."; exit 1; }
+AWS=$(which aws) || { echo "Command aws (aws-cli) not found.  Please verify."; exit 1; }
+
+[ -z $AWS_PROFILE ] && { echo "Variable AWS_PROFILE not set. Set it with 'export AWS_PROFILE=' and try againkub "; exit 1; }
+[ -z $AWS_REGION ] && { echo "Variable AWS_REGION not set. Set it with 'export AWS_REGION=' and try again "; exit 1; }
+
+[ -f ~/.aws/config ] || { echo "AWS config file not found in ~/aws. Run aws-configure." exit 1; }
+[ -f ~/.aws/credentials ] || { echo "AWS credentials file not found in ~/.aws Run aws-configure." exit 1; }
+
+function usage {
+    echo "Usage: $0 [ create | destroy | list ] clustername"
+    exit 1
+}
+
+if [ "$1" != "list" ] ; then
+  if [ $# != 2 ] ; then
+   usage
+  fi
+fi
+
+CLUSTER_NAME=$2
+
+function create {
+  echo "*** Creating EKS cluster: $CLUSTER_NAME in region: $AWS_REGION using profile: $AWS_PROFILE ***"
+   
+  $EKSCTL create cluster --name $CLUSTER_NAME \
+    --nodes $NUM_NODES \
+    --with-oidc \
+    --ssh-access \
+    --nodes-min $MIN_NODES \
+    --nodes-max $MAX_NODES \
+    --node-type $NODE_TYPE\
+    --node-volume-size $NODE_VOLUME_SIZE \
+    --profile $AWS_PROFILE \
+    --region $AWS_REGION \
+    --nodegroup-name $CLUSTER_NAME-nodes
+
+  echo "*** Configuring kubeconfig to point to  cluster: $CLUSTER_NAME in region: $AWS_REGION"
+  aws eks update-kubeconfig \
+    --name $CLUSTER_NAME \
+    --profile $AWS_PROFILE \
+    --region $AWS_REGION
+}
+
+function destroy {
+  echo "*** Destroying EKS cluster: $CLUSTER_NAME in region: $AWS_REGION ***"
+  $EKSCTL delete cluster --name=$CLUSTER_NAME --region=$AWS_REGION
+}
+
+function list {
+  echo "*** Listing EKS clusters in region: $AWS_REGION ***"
+  $EKSCTL get cluster --region=$AWS_REGION
+}
+
+case $1 in
+  create)
+    create
+    ;;
+
+  destroy|delete)
+    destroy
+    ;;
+
+  list)
+    list
+    ;;
+
+  *)
+    usage
+    ;;
+esac

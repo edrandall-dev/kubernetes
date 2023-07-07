@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-nginx
+  labels:
+    type: test-env
+spec:
+  template:
+    metadata:
+      name: pod-nginx
+      labels:
+        type: test-env
+    spec:
+      containers:
+      - name: container-nginx
+        image: nginx
+  replicas: 6
+  selector:
+    matchLabels:
+      type: test-env
